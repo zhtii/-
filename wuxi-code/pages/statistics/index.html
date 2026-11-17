@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>巫溪数智农业管理后台 - 统计分析</title>
+
+  <!-- Element Plus 样式 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@2.9.1/dist/index.css" />
+  <!-- 全局公共样式 -->
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <!-- 页面专属样式 -->
+  <link rel="stylesheet" href="style.css" />
+  <!-- ECharts -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+</head>
+<body>
+  <div id="app">
+
+    <!-- ==================== 顶部导航栏 ==================== -->
+    <header class="top-header">
+      <div class="header-logo" style="cursor:pointer" @click="goHome">
+        <div class="logo-icon">巫溪</div>
+        <span>巫溪数智农业管理平台</span>
+      </div>
+      <nav class="header-nav">
+        <div class="nav-item" @click="navigateTo('地图监控')">地图监控</div>
+        <div class="nav-item" @click="navigateTo('预警配置')">预警配置</div>
+        <div class="nav-item" @click="navigateTo('专家诊断')">专家诊断</div>
+        <div class="nav-item active">统计分析</div>
+        <div class="nav-item" @click="navigateTo('系统管理')">系统管理</div>
+      </nav>
+      <div class="header-right">
+        <span class="fullscreen-btn" title="全屏" @click="toggleFullscreen">⛶</span>
+        <div class="user-avatar">👤</div>
+        <span class="user-name">用户名 ▾</span>
+      </div>
+    </header>
+
+    <!-- ==================== 面包屑栏 ==================== -->
+    <div class="breadcrumb-bar">
+      <span class="bc-item" @click="goHome">首页</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-tab active">统计分析</span>
+    </div>
+
+    <!-- ==================== 主体布局 ==================== -->
+    <div class="main-layout stats-layout">
+
+      <!-- ========== 筛选条件区 ========== -->
+      <div class="stats-filter-bar">
+        <div class="filter-group">
+          <label class="filter-label">时间维度</label>
+          <el-radio-group v-model="timeDimension" size="small">
+            <el-radio-button value="day">日</el-radio-button>
+            <el-radio-button value="week">周</el-radio-button>
+            <el-radio-button value="month">月</el-radio-button>
+          </el-radio-group>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">空间维度</label>
+          <el-cascader
+            v-model="locationFilter"
+            :options="locationOptions"
+            placeholder="选择区域"
+            clearable
+            style="width: 200px"
+            size="small"
+          />
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">病虫害类型</label>
+          <el-select v-model="diseaseFilter" placeholder="全部类型" clearable style="width: 140px" size="small">
+            <el-option label="稻瘟病" value="稻瘟病" />
+            <el-option label="纹枯病" value="纹枯病" />
+            <el-option label="螟虫" value="螟虫" />
+            <el-option label="蚜虫" value="蚜虫" />
+            <el-option label="其他" value="其他" />
+          </el-select>
+        </div>
+        <div class="filter-group">
+          <el-button type="primary" size="small" @click="refreshCharts">查询</el-button>
+          <el-button size="small" @click="resetFilters">重置</el-button>
+        </div>
+      </div>
+
+      <!-- ========== 统计看板 ========== -->
+      <div class="stats-dashboard">
+
+        <!-- 概览卡片 -->
+        <div class="overview-cards">
+          <div class="overview-card" v-for="card in overviewCards" :key="card.title">
+            <div class="card-value" :style="{ color: card.color }">{{ card.value }}</div>
+            <div class="card-title">{{ card.title }}</div>
+            <div class="card-trend" :class="card.trendClass">{{ card.trend }}</div>
+          </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h4>病虫害发生趋势</h4>
+              <el-radio-group v-model="trendChartType" size="small" @change="updateTrendChart">
+                <el-radio-button value="line">折线图</el-radio-button>
+                <el-radio-button value="bar">柱状图</el-radio-button>
+              </el-radio-group>
+            </div>
+            <div ref="trendChart" class="chart-container"></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h4>病虫害类型分布</h4>
+            </div>
+            <div ref="pieChart" class="chart-container"></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h4>各乡镇预警统计</h4>
+            </div>
+            <div ref="townChart" class="chart-container"></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h4>设备在线率趋势</h4>
+            </div>
+            <div ref="deviceChart" class="chart-container"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Vue 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Element Plus -->
+  <script src="https://cdn.jsdelivr.net/npm/element-plus@2.9.1/dist/index.full.min.js"></script>
+  <!-- 全局公共脚本 -->
+  <script src="../../assets/js/common.js"></script>
+  <!-- 页面业务逻辑 -->
+  <script src="app.js"></script>
+</body>
+</html>

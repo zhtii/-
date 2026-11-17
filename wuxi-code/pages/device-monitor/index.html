@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>巫溪数智农业管理后台 - 设备监控</title>
+
+  <!-- Element Plus 样式 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@2.9.1/dist/index.css" />
+  <!-- 全局公共样式 -->
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <!-- 页面专属样式 -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- 高德地图安全密钥配置（必须在加载 JS API 之前） -->
+  <script type="text/javascript">
+    window._AMapSecurityConfig = {
+      securityJsCode: 'bf699365329e0ca089ba0f1659b5e9bf',
+    };
+  </script>
+  <!-- 高德地图 JS API 2.0 -->
+  <script src="https://webapi.amap.com/maps?v=2.0&key=64849bbd5390c6470849d19c8708f8e2&plugin=AMap.PlaceSearch,AMap.ToolBar,AMap.Scale,AMap.RangingTool"></script>
+</head>
+<body>
+  <div id="app">
+
+    <!-- ==================== 顶部导航栏 ==================== -->
+    <header class="top-header">
+      <div class="header-logo" style="cursor:pointer" @click="goHome">
+        <div class="logo-icon">巫溪</div>
+        <span>巫溪数智农业管理平台</span>
+      </div>
+      <nav class="header-nav">
+        <div class="nav-item active">地图监控</div>
+        <div class="nav-item" @click="navigateTo('预警配置')">预警配置</div>
+        <div class="nav-item" @click="navigateTo('专家诊断')">专家诊断</div>
+        <div class="nav-item" @click="navigateTo('统计分析')">统计分析</div>
+        <div class="nav-item" @click="navigateTo('系统管理')">系统管理</div>
+      </nav>
+      <div class="header-right">
+        <span class="fullscreen-btn" title="全屏" @click="toggleFullscreen">⛶</span>
+        <div class="user-avatar">👤</div>
+        <span class="user-name">用户名 ▾</span>
+      </div>
+    </header>
+
+    <!-- ==================== 面包屑栏 ==================== -->
+    <div class="breadcrumb-bar">
+      <span class="bc-item" @click="goHome">首页</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-tab">设备管理 <span class="close-tab">✕</span></span>
+      <span class="collapse-btn" title="折叠侧栏">»</span>
+    </div>
+
+    <!-- ==================== 主体布局 ==================== -->
+    <div class="main-layout">
+
+      <!-- ========== 左侧设备树面板 ========== -->
+      <aside class="left-panel">
+        <div class="search-box">
+          <el-input
+            v-model="treeSearch"
+            placeholder="设备搜索"
+            prefix-icon="Search"
+            clearable
+            size="small"
+          />
+        </div>
+        <div class="device-filter">
+          <el-select v-model="deviceFilter" size="small" style="width: 100%">
+            <el-option label="全部设备 (320)" value="all" />
+            <el-option label="在线设备 (280)" value="online" />
+            <el-option label="报警设备 (15)" value="alarm" />
+            <el-option label="离线设备 (25)" value="offline" />
+          </el-select>
+          <span class="filter-icon" @click="openFilterDialog" title="页面显示设置">☰</span>
+        </div>
+        <div class="tree-container">
+          <el-tree
+            ref="deviceTree"
+            :data="treeData"
+            :props="treeProps"
+            show-checkbox
+            default-expand-all
+            node-key="id"
+            highlight-current
+            :filter-node-method="filterNode"
+            @node-click="handleNodeClick"
+            @node-contextmenu="handleNodeRightClick"
+            @check="handleCheckChange"
+          >
+            <template #default="{ node, data }">
+              <span style="display:flex; align-items:center; gap:4px;">
+                <span
+                  v-if="data.deviceType"
+                  :class="['tree-device-icon', data.deviceType]"
+                ></span>
+                <span>{{ node.label }}</span>
+              </span>
+            </template>
+          </el-tree>
+        </div>
+      </aside>
+
+      <!-- ========== 右侧内容区 ========== -->
+      <div class="right-content">
+
+        <!-- ===== 地图区域 ===== -->
+        <div class="map-area" @click="hideContextMenu">
+
+          <!-- 地图搜索 -->
+          <div class="map-search">
+            <el-input
+              v-model="mapSearch"
+              placeholder="搜地点"
+              size="small"
+              style="width: 200px"
+            />
+            <el-button
+              class="search-btn"
+              size="small"
+              icon="Search"
+              @click="searchLocation"
+            >搜索</el-button>
+          </div>
+
+          <!-- 状态图例 -->
+          <div class="map-legend">
+            <div class="legend-section">
+              <span class="legend-title">设备统计</span>
+              <div class="legend-item" v-for="(info, key) in DEVICE_TYPES" :key="key">
+                <span class="legend-dot" :style="{ background: info.color }"></span>
+                {{ info.label }}
+                <span class="legend-count">
+                  <span style="color:#52c41a">{{ deviceStats[key]?.online || 0 }}在线</span>
+                  <span style="color:#8c8c8c;margin-left:4px">{{ deviceStats[key]?.offline || 0 }}离线</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 地图工具按钮 -->
+          <div class="map-tools">
+            <div class="tool-btn" @click="toggleSatellite">{{ isSatellite ? '标准图' : '卫星图' }}</div>
+            <div class="tool-btn-group">
+              <div class="tool-btn" @click="mapToolsExpanded = !mapToolsExpanded">
+                地图工具
+                <span class="tool-arrow" :class="{ expanded: mapToolsExpanded }">›</span>
+              </div>
+              <div class="tool-submenu" v-show="mapToolsExpanded">
+                <div class="tool-btn tool-sub-item" @click="toggleRanging" :class="{ active: isRanging }">
+                  {{ isRanging ? '结束测距' : '测量距离' }}
+                </div>
+                <div class="tool-btn tool-sub-item" @click="measureArea" :class="{ active: isMeasuringArea }">
+                  {{ isMeasuringArea ? '结束测面' : '测量面积' }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <!-- 设备信息弹窗卡片 -->
+          <div class="device-popup-card" v-if="showDevicePopup && popupData">
+            <div class="card-header">
+              <div class="card-title-row">
+                <span class="card-type-badge" :style="{ background: (DEVICE_TYPES[popupData.type] || {}).color || '#1890ff' }">
+                  {{ (DEVICE_TYPES[popupData.type] || {}).label || '' }}
+                </span>
+                <span class="card-device-name">{{ popupData.name }}</span>
+                <span class="card-status" :style="{ color: (STATUS_MAP[popupData.status] || {}).color || '#8c8c8c' }">
+                  {{ (STATUS_MAP[popupData.status] || {}).label || '' }}
+                </span>
+              </div>
+              <button class="card-close" @click="showDevicePopup = false">✕</button>
+            </div>
+            <div class="card-body">
+              <!-- 左侧：实时图像 -->
+              <div class="card-image">
+                <div class="card-image-placeholder">
+                  <span class="camera-icon">📷</span>
+                  <span class="camera-label">实时图像</span>
+                  <span class="camera-time">{{ popupData.data.time || '' }}</span>
+                </div>
+              </div>
+              <!-- 右侧：监测数据 -->
+              <div class="card-data">
+                <div class="card-code">编号：{{ popupData.code }}</div>
+                <div class="card-time">更新：{{ popupData.data.time }}</div>
+                <div class="card-metrics">
+                  <div class="metric-item" v-for="field in currentPopupFields" :key="field.key">
+                    <span class="metric-label">{{ field.label }}</span>
+                    <span class="metric-value">{{ popupData.data[field.key] || '—' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 高德地图容器 -->
+          <div id="mapContainer" class="map-container"></div>
+        </div>
+
+        <!-- ===== 底部图片预览面板 ===== -->
+        <div class="bottom-panel" :style="{ height: bottomExpanded ? '200px' : '45px' }">
+          <div class="bottom-toolbar">
+            <span class="toolbar-label">图片预览</span>
+            <el-select v-model="datePreset" size="small" style="width: 100px">
+              <el-option label="今日" value="today" />
+              <el-option label="近7天" value="week" />
+              <el-option label="近30天" value="month" />
+            </el-select>
+            <div class="date-range">
+              <el-date-picker
+                v-model="dateRange"
+                type="datetimerange"
+                size="small"
+                range-separator="至"
+                start-placeholder="开始时间"
+                end-placeholder="结束时间"
+                style="width: 380px"
+                format="YYYY-MM-DD HH:mm:ss"
+                value-format="YYYY-MM-DD HH:mm:ss"
+              />
+            </div>
+            <el-button class="query-btn" size="small" @click="queryImages">查询</el-button>
+            <el-button class="reset-btn" size="small" @click="resetQuery">重置</el-button>
+            <span
+              class="expand-btn"
+              :class="{ expanded: bottomExpanded }"
+              @click="toggleBottomPanel"
+              :title="bottomExpanded ? '收起' : '展开'"
+            >∨</span>
+          </div>
+
+          <div class="image-preview-area" v-show="bottomExpanded">
+            <div class="image-placeholder" v-for="i in 5" :key="i"></div>
+          </div>
+
+          <div class="pagination-bar" v-show="bottomExpanded">
+            <span>共 150 条</span>
+            <el-select v-model="pageSize" size="small" class="page-size-select">
+              <el-option label="10条/页" :value="10" />
+              <el-option label="20条/页" :value="20" />
+              <el-option label="50条/页" :value="50" />
+            </el-select>
+            <el-pagination
+              layout="prev, pager, next"
+              :total="150"
+              :page-size="pageSize"
+              :current-page="currentPage"
+              @current-change="currentPage = $event"
+              small
+            />
+            <el-input
+              v-model.number="jumpPage"
+              size="small"
+              style="width: 50px"
+              placeholder="页码"
+            />
+            <span style="cursor:pointer; color: #00a854;" @click="jumpToPage">跳转</span>
+          </div>
+        </div>
+
+      </div><!-- /right-content -->
+    </div><!-- /main-layout -->
+
+    <!-- ==================== 页面显示设置对话框 ==================== -->
+    <el-dialog
+      v-model="filterDialogVisible"
+      title="页面显示设置"
+      width="360px"
+      :close-on-click-modal="false"
+    >
+      <div class="filter-dialog-body">
+        <div class="filter-type-row" v-for="(info, key) in DEVICE_TYPES" :key="key">
+          <el-checkbox v-model="visibleDeviceTypes[key]">{{ info.label }}</el-checkbox>
+        </div>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="saveFilterSettings">保存</el-button>
+        <el-button @click="closeFilterDialog">取消</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ==================== 右键上下文菜单 ==================== -->
+    <div
+      class="context-menu"
+      :class="{ show: contextMenuVisible }"
+      :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
+    >
+      <div class="menu-item" @click.stop="handleMenuAction('info')">设备信息</div>
+      <div class="menu-item" @click.stop="handleMenuAction('upgrade')">设备升级</div>
+      <div class="menu-item" @click.stop="handleMenuAction('params')">参数配置</div>
+      <div class="menu-item" @click.stop="handleMenuAction('capture')">前端抓拍</div>
+      <div class="menu-item" @click.stop="handleMenuAction('traffic')">网络流量配置</div>
+    </div>
+
+  </div><!-- /#app -->
+
+  <!-- Vue 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Element Plus -->
+  <script src="https://cdn.jsdelivr.net/npm/element-plus@2.9.1/dist/index.full.min.js"></script>
+  <!-- 全局公共脚本 -->
+  <script src="../../assets/js/common.js"></script>
+  <!-- 页面业务逻辑 -->
+  <script src="app.js"></script>
+</body>
+</html>

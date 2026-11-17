@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>巫溪数智农业管理后台 - 预警配置</title>
+
+  <!-- Element Plus 样式 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@2.9.1/dist/index.css" />
+  <!-- 全局公共样式 -->
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <!-- 页面专属样式 -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ==================== 顶部导航栏 ==================== -->
+    <header class="top-header">
+      <div class="header-logo" style="cursor:pointer" @click="goHome">
+        <div class="logo-icon">巫溪</div>
+        <span>巫溪数智农业管理平台</span>
+      </div>
+      <nav class="header-nav">
+        <div class="nav-item" @click="navigateTo('地图监控')">地图监控</div>
+        <div class="nav-item active">预警配置</div>
+        <div class="nav-item" @click="navigateTo('专家诊断')">专家诊断</div>
+        <div class="nav-item" @click="navigateTo('统计分析')">统计分析</div>
+        <div class="nav-item" @click="navigateTo('系统管理')">系统管理</div>
+      </nav>
+      <div class="header-right">
+        <span class="fullscreen-btn" title="全屏" @click="toggleFullscreen">⛶</span>
+        <div class="user-avatar">👤</div>
+        <span class="user-name">用户名 ▾</span>
+      </div>
+    </header>
+
+    <!-- ==================== 面包屑栏 ==================== -->
+    <div class="breadcrumb-bar">
+      <span class="bc-item" @click="goHome">首页</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-tab active">预警配置</span>
+    </div>
+
+    <!-- ==================== 主体布局 ==================== -->
+    <div class="main-layout warning-layout">
+
+      <!-- ========== 左侧菜单 ========== -->
+      <aside class="sidebar">
+        <div class="sidebar-header">🌿 预警策略配置</div>
+        <div class="menu-container">
+          <div class="menu-group">
+            <div class="menu-group-title">监测预警 (虫情/孢子)</div>
+            <div 
+              class="menu-item" 
+              :class="{ active: currentType === 'pest' }"
+              @click="filterList('pest')"
+            >
+              <span class="dot"></span>虫情监测
+            </div>
+            <div 
+              class="menu-item" 
+              :class="{ active: currentType === 'spore' }"
+              @click="filterList('spore')"
+            >
+              <span class="dot"></span>病害监测
+            </div>
+          </div>
+          <div class="menu-group">
+            <div class="menu-group-title">设备状态预警</div>
+            <div 
+              class="menu-item" 
+              :class="{ active: currentType === 'offline' }"
+              @click="filterList('offline')"
+            >
+              <span class="dot"></span>设备离线
+            </div>
+            <div 
+              class="menu-item" 
+              :class="{ active: currentType === 'fault' }"
+              @click="filterList('fault')"
+            >
+              <span class="dot"></span>设备故障
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ========== 右侧主内容 ========== -->
+      <div class="main-content">
+        <div class="toolbar">
+          <div class="page-title">{{ pageTitle }}</div>
+          <div class="toolbar-right">
+            <button class="btn btn-primary" @click="openDrawer('create')">+ 新建预警规则</button>
+          </div>
+        </div>
+
+        <!-- 数据列表 -->
+        <div class="table-panel">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>规则名称</th>
+                  <th>生效范围 (设备/类型)</th>
+                  <th>核心触发阈值</th>
+                  <th>推送渠道</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="currentRules.length === 0">
+                  <td colspan="6" class="empty-tip">暂无规则配置，请点击右上角新建</td>
+                </tr>
+                <tr v-for="rule in currentRules" :key="rule.id">
+                  <td><strong>{{ rule.name }}</strong></td>
+                  <td><span class="tag">{{ rule.scope }}</span></td>
+                  <td class="threshold-cell">{{ rule.threshold }}</td>
+                  <td>{{ rule.push }}</td>
+                  <td>
+                    <label class="switch">
+                      <input type="checkbox" v-model="rule.status" @change="toggleRuleStatus(rule)">
+                      <span class="slider"></span>
+                    </label>
+                  </td>
+                  <td>
+                    <a class="action-link" @click="openDrawer('edit', rule.id)">编辑</a>
+                    <a class="action-link danger" @click="deleteRule(rule)">删除</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 抽屉 (配置表单) ==================== -->
+    <div class="drawer-overlay" :class="{ active: drawerVisible }" @click.self="closeDrawer">
+      <div class="drawer">
+        <div class="drawer-header">
+          <div class="drawer-title">{{ drawerTitle }}</div>
+          <button class="drawer-close" @click="closeDrawer">×</button>
+        </div>
+        
+        <div class="drawer-body">
+          <!-- 基础信息 -->
+          <div class="form-card">
+            <div class="form-row">
+              <div class="form-label">规则名称</div>
+              <div class="form-content">
+                <input type="text" class="form-control" v-model="ruleForm.name" placeholder="例如：东区水稻虫情预警规则">
+              </div>
+            </div>
+          </div>
+
+          <!-- 生效范围 -->
+          <div class="form-card">
+            <div class="section-title">生效范围</div>
+            <div class="scope-section">
+              <div class="scope-row">
+                <div class="scope-label">适用设备</div>
+                <div class="scope-content">
+                  <label class="tag-checkbox" v-for="device in availableDevices" :key="device">
+                    <input type="checkbox" :value="device" v-model="ruleForm.devices"> {{ device }}
+                  </label>
+                </div>
+              </div>
+              <div class="scope-row" v-if="currentType === 'pest' || currentType === 'spore'">
+                <div class="scope-label">{{ currentType === 'pest' ? '监测虫种' : '关联作物' }}</div>
+                <div class="scope-content">
+                  <label class="tag-checkbox" v-for="item in availableTargets" :key="item">
+                    <input type="checkbox" :value="item" v-model="ruleForm.targets"> {{ item }}
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 阈值配置 -->
+          <div class="form-card">
+            <div class="section-title">分级阈值配置</div>
+            <div v-if="currentType === 'fault'" class="warning-level-box box-red">
+              <div class="level-header">
+                <div class="level-title level-red">设备故障触发</div>
+                <label class="switch">
+                  <input type="checkbox" v-model="ruleForm.faultEnabled">
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="level-conditions">
+                <div class="fault-options">
+                  <label><input type="checkbox" v-model="ruleForm.faultTypes" value="硬件损坏"> 硬件损坏</label>
+                  <label><input type="checkbox" v-model="ruleForm.faultTypes" value="网络异常"> 网络异常</label>
+                  <label><input type="checkbox" v-model="ruleForm.faultTypes" value="存储异常"> 存储异常</label>
+                </div>
+              </div>
+            </div>
+            <div v-else>
+              <div 
+                v-for="(level, idx) in warningLevels" 
+                :key="level.name" 
+                class="warning-level-box"
+                :class="level.boxClass"
+              >
+                <div class="level-header">
+                  <div class="level-title" :class="level.class">{{ level.name }}</div>
+                  <label class="switch">
+                    <input type="checkbox" v-model="level.enabled">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="level-conditions">
+                  <span>{{ level.labelName }}</span>
+                  <div class="input-group">
+                    <input type="number" v-model="level.threshold">
+                    <span class="addon">{{ level.unit }}</span>
+                  </div>
+                  <span class="text-or">或</span>
+                  <span>连续</span>
+                  <div class="input-group">
+                    <input type="number" v-model="level.days">
+                    <span class="addon">日</span>
+                  </div>
+                  <span>上升且均 ≥</span>
+                  <div class="input-group">
+                    <input type="number" v-model="level.thresholdMin">
+                    <span class="addon">{{ level.unit }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 预警推送 -->
+          <div class="form-card">
+            <div class="section-title">预警推送</div>
+            
+            <!-- 短信通知 -->
+            <div class="push-channel">
+              <div class="channel-header">
+                <div class="channel-title">短信通知</div>
+                <label class="enable-label">
+                  <input type="checkbox" v-model="ruleForm.smsEnabled"> 是否启用
+                </label>
+              </div>
+              <div :class="{ 'disabled-box': !ruleForm.smsEnabled }">
+                <div class="form-row">
+                  <div class="form-label">手机号码</div>
+                  <div class="form-content">
+                    <input type="text" class="form-control" v-model="ruleForm.smsPhone" placeholder="请填写手机号码，多个号码用逗号隔开">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-label">推送内容</div>
+                  <div class="form-content">
+                    <textarea class="form-control" v-model="ruleForm.smsContent"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 邮件通知 -->
+            <div class="push-channel">
+              <div class="channel-header">
+                <div class="channel-title">邮件通知</div>
+                <label class="enable-label">
+                  <input type="checkbox" v-model="ruleForm.emailEnabled"> 是否启用
+                </label>
+              </div>
+              <div :class="{ 'disabled-box': !ruleForm.emailEnabled }">
+                <div class="form-row">
+                  <div class="form-label">邮件地址</div>
+                  <div class="form-content">
+                    <input type="text" class="form-control" v-model="ruleForm.emailAddress" placeholder="请填写邮件地址，多个邮箱用逗号隔开">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-label">邮件主题</div>
+                  <div class="form-content">
+                    <input type="text" class="form-control" v-model="ruleForm.emailSubject">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-label">推送内容</div>
+                  <div class="form-content">
+                    <textarea class="form-control" v-model="ruleForm.emailContent"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- APP推送 -->
+            <div class="push-channel">
+              <div class="channel-header">
+                <div class="channel-title">APP推送</div>
+                <label class="enable-label">
+                  <input type="checkbox" v-model="ruleAppEnabled"> 是否启用
+                </label>
+              </div>
+              <div :class="{ 'disabled-box': !appPushEnabled }">
+                <div class="form-row">
+                  <div class="form-label">接收对象</div>
+                  <div class="form-content">
+                    <select class="form-control" v-model="ruleForm.appReceiver">
+                      <option value="all">设备绑定农户及管理员</option>
+                      <option value="admin">仅管理员</option>
+                      <option value="expert">指定专家</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-label">推送标题</div>
+                  <div class="form-content">
+                    <input type="text" class="form-control" v-model="ruleForm.appTitle">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-label">推送内容</div>
+                  <div class="form-content">
+                    <textarea class="form-control" v-model="ruleForm.appContent"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="drawer-footer">
+          <button class="btn btn-default" @click="closeDrawer">取消</button>
+          <button class="btn btn-primary" @click="saveRule">保存配置</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Vue 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Element Plus -->
+  <script src="https://cdn.jsdelivr.net/npm/element-plus@2.9.1/dist/index.full.min.js"></script>
+  <!-- 全局公共脚本 -->
+  <script src="../../assets/js/common.js"></script>
+  <!-- 页面业务逻辑 -->
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+/**
+ * 统计分析页面 - 专属样式
+ */
+
+.stats-layout {
+  flex-direction: column;
+  padding: 16px 20px;
+  overflow-y: auto;
+  background: #f0f2f5;
+}
+
+/* ========== 筛选条件区 ========== */
+.stats-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: #fff;
+  padding: 14px 20px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 13px;
+  color: #666;
+  white-space: nowrap;
+}
+
+/* ========== 统计看板 ========== */
+.stats-dashboard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+/* ========== 概览卡片 ========== */
+.overview-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.overview-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.overview-card .card-value {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.overview-card .card-title {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.overview-card .card-trend {
+  font-size: 12px;
+}
+
+.trend-up {
+  color: #f5222d;
+}
+
+.trend-down {
+  color: #52c41a;
+}
+
+/* ========== 图表网格 ========== */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.chart-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.chart-header h4 {
+  font-size: 15px;
+  color: #333;
+}
+
+.chart-container {
+  flex: 1;
+  min-height: 280px;
+}

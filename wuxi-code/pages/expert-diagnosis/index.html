@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>巫溪数智农业管理后台 - 专家诊断</title>
+
+  <!-- Element Plus 样式 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@2.9.1/dist/index.css" />
+  <!-- 全局公共样式 -->
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <!-- 页面专属样式 -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ==================== 顶部导航栏 ==================== -->
+    <header class="top-header">
+      <div class="header-logo" style="cursor:pointer" @click="goHome">
+        <div class="logo-icon">巫溪</div>
+        <span>巫溪数智农业管理平台</span>
+      </div>
+      <nav class="header-nav">
+        <div class="nav-item" @click="navigateTo('地图监控')">地图监控</div>
+        <div class="nav-item" @click="navigateTo('预警配置')">预警配置</div>
+        <div class="nav-item active">专家诊断</div>
+        <div class="nav-item" @click="navigateTo('统计分析')">统计分析</div>
+        <div class="nav-item" @click="navigateTo('系统管理')">系统管理</div>
+      </nav>
+      <div class="header-right">
+        <span class="fullscreen-btn" title="全屏" @click="toggleFullscreen">⛶</span>
+        <div class="user-avatar">👤</div>
+        <span class="user-name">用户名 ▾</span>
+      </div>
+    </header>
+
+    <!-- ==================== 面包屑栏 ==================== -->
+    <div class="breadcrumb-bar">
+      <span class="bc-item" @click="goHome">首页</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-tab active">专家诊断</span>
+    </div>
+
+    <!-- ==================== 主体布局 ==================== -->
+    <div class="diag-app-layout">
+
+      <!-- ========== 左侧边栏导航 ========== -->
+      <aside class="diag-sidebar">
+        <div class="nav-menu">
+          <div
+            class="nav-item"
+            :class="{ active: activeView === 'workspace' }"
+            @click="activeView = 'workspace'"
+          >
+            <span>💻</span> 专家工作台
+          </div>
+          <div
+            class="nav-item"
+            :class="{ active: activeView === 'caselib' }"
+            @click="activeView = 'caselib'"
+          >
+            <span>📚</span> 病虫害案例库
+          </div>
+        </div>
+        <div class="sidebar-user">
+          👨‍🔬 张教授 (在线)
+        </div>
+      </aside>
+
+      <!-- ========== 右侧主内容 ========== -->
+      <div class="diag-main-content">
+
+        <!-- ===== 视图1：专家工作台 ===== -->
+        <div v-show="activeView === 'workspace'" class="view-workspace">
+
+          <!-- 左侧：任务队列 -->
+          <div class="panel left-panel">
+            <div class="tabs">
+              <div
+                class="tab"
+                v-for="tab in taskTabs"
+                :key="tab.key"
+                :class="{ active: activeTaskTab === tab.key }"
+                @click="activeTaskTab = tab.key"
+              >
+                {{ tab.label }} ({{ tab.count }})
+              </div>
+            </div>
+            <div class="task-list">
+              <div
+                class="task-item"
+                v-for="task in filteredTasks"
+                :key="task.id"
+                :class="{ active: selectedTaskId === task.id }"
+                @click="selectTask(task)"
+              >
+                <div class="task-top">
+                  <span class="task-name">{{ task.submitter }} - {{ task.cropType }}</span>
+                  <span class="task-time">{{ task.timeAgo }}</span>
+                </div>
+                <div class="task-desc">{{ task.description }}</div>
+                <div v-if="task.urgent" class="tag tag-red">紧急</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 中间：图像与互动 -->
+          <div class="panel center-panel">
+            <div class="image-workspace">
+              <div class="toolbar">
+                <button
+                  class="tool-btn"
+                  v-for="tool in imageTools"
+                  :key="tool"
+                  :class="{ active: activeTool === tool }"
+                  @click="activeTool = tool"
+                >{{ tool }}</button>
+                <button class="tool-btn btn-clear" @click="clearAnnotations">清空标注</button>
+              </div>
+              <div class="canvas-area">
+                <div class="mock-image">
+                  <span>[ 高清病理图片展示区 ]</span>
+                  <div class="annotation-circle" v-if="selectedTask"></div>
+                  <div class="annotation-text" v-if="selectedTask">疑似{{ selectedTask.diseaseType }}病斑</div>
+                </div>
+              </div>
+            </div>
+            <div class="discuss-area">
+              <div class="discuss-header">
+                <span class="discuss-title">问诊讨论区</span>
+                <span class="discuss-subtitle">（基于留言模式，非实时IM）</span>
+              </div>
+              <div class="discuss-list" ref="chatHistory">
+                <div
+                  class="discuss-item"
+                  v-for="(msg, idx) in chatMessages"
+                  :key="idx"
+                >
+                  <div class="discuss-avatar" :class="msg.role">
+                    {{ msg.role === 'farmer' ? '农户' : '专家' }}
+                  </div>
+                  <div class="discuss-body">
+                    <div class="discuss-meta">
+                      <span class="discuss-name">{{ msg.name }}</span>
+                      <span v-if="msg.role === 'expert'" class="role-badge">专家</span>
+                      <span v-else class="role-badge role-farmer">农户</span>
+                      <span v-if="msg.isOwner" class="owner-tag">(楼主)</span>
+                      <span class="discuss-time">{{ msg.time }}</span>
+                    </div>
+                    <div class="discuss-content">{{ msg.text }}</div>
+                    <div v-if="msg.desc" class="discuss-desc">发生描述：{{ msg.desc }}</div>
+                    <div v-if="msg.image" class="discuss-image">
+                      <span class="img-placeholder">📷 {{ msg.image }}</span>
+                    </div>
+                    <div v-if="msg.replyTo" class="discuss-reply">
+                      <span class="reply-prefix">回复 {{ msg.replyTo }}：</span>{{ msg.replyText }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="discuss-input">
+                <textarea v-model="chatInput" class="discuss-textarea" placeholder="在此输入回复内容，支持要求农户补充图片..."></textarea>
+                <div class="discuss-input-footer">
+                  <div class="discuss-input-actions">
+                    <span class="action-link">📎 上传图片</span>
+                  </div>
+                  <button class="btn-reply" @click="sendChat">发表回复</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧：诊断表单 -->
+          <div class="panel right-panel">
+            <div class="panel-header">诊断报告编辑</div>
+            <div class="form-body">
+              <div class="form-group">
+                <label>病害名称 <span>*</span></label>
+                <input v-model="diagForm.diseaseName" type="text" class="form-control" placeholder="如：水稻稻瘟病" />
+              </div>
+              <div class="form-group">
+                <label>发生原因 <span>*</span></label>
+                <textarea v-model="diagForm.cause" class="form-control" rows="3" placeholder="分析病害发生原因"></textarea>
+              </div>
+              <div class="form-group">
+                <label>防治方案 <span>*</span></label>
+                <textarea v-model="diagForm.treatment" class="form-control" rows="3" placeholder="详细防治方案"></textarea>
+              </div>
+              <div class="form-group">
+                <label>用药建议</label>
+                <textarea v-model="diagForm.medication" class="form-control" rows="3" placeholder="推荐用药及用量"></textarea>
+              </div>
+            </div>
+            <div class="form-footer">
+              <button class="btn btn-default" @click="saveDraft">存草稿</button>
+              <button class="btn btn-primary" @click="submitDiagnosis">提交并归档入库</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ===== 视图2：案例库 ===== -->
+        <div v-show="activeView === 'caselib'" class="view-caselib">
+          <div class="filter-bar">
+            <input v-model="caseFilter.keyword" type="text" placeholder="输入关键字搜索（如：水稻、霉层）" />
+            <select v-model="caseFilter.cropType">
+              <option value="">全部作物类型</option>
+              <option value="水稻">水稻</option>
+              <option value="玉米">玉米</option>
+              <option value="小麦">小麦</option>
+              <option value="蔬菜">蔬菜</option>
+            </select>
+            <select v-model="caseFilter.diseaseCategory">
+              <option value="">全部病害类别</option>
+              <option value="真菌性病害">真菌性病害</option>
+              <option value="细菌性病害">细菌性病害</option>
+              <option value="虫害">虫害</option>
+            </select>
+            <button class="btn btn-primary" style="margin-left:auto;" @click="searchCases">检索</button>
+          </div>
+
+          <div class="case-grid">
+            <div
+              class="case-card"
+              v-for="caseItem in caseList"
+              :key="caseItem.id"
+              @click="openCaseDetail(caseItem)"
+            >
+              <div class="case-img"></div>
+              <div class="case-info">
+                <div class="case-title">
+                  {{ caseItem.diseaseName }}
+                  <span v-if="caseItem.hot" class="tag tag-red">高发</span>
+                </div>
+                <div class="case-meta">
+                  <span>作物：{{ caseItem.cropType }}</span>
+                  <span>归档：{{ caseItem.archiveDate }}</span>
+                </div>
+                <div class="case-desc">症状：{{ caseItem.symptoms }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==================== 案例详情弹窗 ==================== -->
+    <div class="modal-overlay" v-if="caseDetailVisible" @click.self="caseDetailVisible = false">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span>案例详情：{{ currentCase?.diseaseName }}</span>
+          <button class="modal-close" @click="caseDetailVisible = false">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-img-box">
+            <div class="annotation-circle" style="top:40%;left:30%;"></div>
+            <div class="annotation-text" style="top:35%;left:40%;">典型病斑特征</div>
+          </div>
+          <div class="modal-info-box">
+            <div class="modal-info-item">
+              <h4>诊断结论</h4>
+              <p>{{ currentCase?.diseaseName }}</p>
+            </div>
+            <div class="modal-info-item">
+              <h4>发生原因</h4>
+              <p>{{ currentCase?.cause }}</p>
+            </div>
+            <div class="modal-info-item">
+              <h4>防治方案</h4>
+              <p>{{ currentCase?.treatment }}</p>
+            </div>
+            <div class="modal-info-item">
+              <h4>用药建议</h4>
+              <p>{{ currentCase?.medication }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Vue 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Element Plus -->
+  <script src="https://cdn.jsdelivr.net/npm/element-plus@2.9.1/dist/index.full.min.js"></script>
+  <!-- 全局公共脚本 -->
+  <script src="../../assets/js/common.js"></script>
+  <!-- 页面业务逻辑 -->
+  <script src="app.js"></script>
+</body>
+</html>

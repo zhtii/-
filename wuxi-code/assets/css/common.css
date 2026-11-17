@@ -1,0 +1,202 @@
+/**
+ * 渝富数智管理后台 - 全局公共样式
+ * 所有页面共用：导航栏、面包屑、全局重置等
+ */
+
+/* ========================================
+   全局重置
+   ======================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}
+
+#app {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ========================================
+   顶部导航栏
+   ======================================== */
+.top-header {
+  height: 56px;
+  background: #00a854;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.header-logo .logo-icon {
+  width: 32px;
+  height: 32px;
+  background: #fff;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00a854;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-nav .nav-item {
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.header-nav .nav-item:hover,
+.header-nav .nav-item.active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-right .user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00a854;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.header-right .user-name {
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.header-right .fullscreen-btn {
+  cursor: pointer;
+  font-size: 18px;
+  user-select: none;
+}
+
+/* ========================================
+   面包屑栏
+   ======================================== */
+.breadcrumb-bar {
+  height: 36px;
+  background: #f0f2f5;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid #e8e8e8;
+  flex-shrink: 0;
+}
+
+.breadcrumb-bar .bc-item {
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+}
+
+.breadcrumb-bar .bc-item.active {
+  color: #333;
+  font-weight: 500;
+}
+
+.breadcrumb-bar .bc-sep {
+  margin: 0 8px;
+  color: #999;
+  font-size: 12px;
+}
+
+.breadcrumb-bar .bc-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 3px;
+  padding: 2px 10px;
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+.breadcrumb-bar .bc-tab .close-tab {
+  cursor: pointer;
+  color: #999;
+  font-size: 12px;
+}
+
+.breadcrumb-bar .collapse-btn {
+  margin-left: auto;
+  cursor: pointer;
+  font-size: 16px;
+  color: #666;
+  user-select: none;
+}
+
+/* ========================================
+   主体布局容器（所有页面共用）
+   ======================================== */
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ========================================
+   自定义滚动条
+   ======================================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
+}

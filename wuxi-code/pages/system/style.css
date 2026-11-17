@@ -1,0 +1,98 @@
+/**
+ * 系统管理页面 - 专属样式
+ */
+
+.system-layout {
+  flex-direction: row;
+}
+
+/* ========== 左侧菜单 ========== */
+.system-sidebar {
+  width: 200px;
+  background: #fff;
+  border-right: 1px solid #e8e8e8;
+  padding: 12px 0;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.system-sidebar .sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.system-sidebar .sidebar-item:hover {
+  background: #f5f5f5;
+}
+
+.system-sidebar .sidebar-item.active {
+  background: #e6f7ff;
+  color: #00a854;
+  border-left-color: #00a854;
+  font-weight: 500;
+}
+
+.system-sidebar .sidebar-icon {
+  font-size: 16px;
+}
+
+/* ========== 右侧内容区 ========== */
+.system-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: #f0f2f5;
+}
+
+.tab-panel {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.panel-header {
+  margin-bottom: 20px;
+}
+
+.panel-header h3 {
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.panel-header .panel-desc {
+  font-size: 13px;
+  color: #999;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+/* ========== 用户详情 ========== */
+.detail-content {
+  font-size: 14px;
+}
+
+.detail-row {
+  margin-bottom: 12px;
+  color: #333;
+  display: flex;
+  align-items: center;
+}
+
+.detail-label {
+  color: #999;
+  min-width: 80px;
+}
